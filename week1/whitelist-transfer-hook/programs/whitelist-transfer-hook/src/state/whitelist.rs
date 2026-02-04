@@ -1,7 +1,8 @@
 use anchor_lang::prelude::*;
 
 #[account]
+#[derive(InitSpace)]
 pub struct Whitelist {
-    pub address: Vec<Pubkey>,
+    pub key: Pubkey,
     pub bump: u8,
 }

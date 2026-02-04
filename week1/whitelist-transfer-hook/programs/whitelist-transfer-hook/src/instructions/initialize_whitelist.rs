@@ -9,20 +9,20 @@ pub struct InitializeWhitelist<'info> {
     #[account(
         init,
         payer = admin,
-        space = 8 + 4 + 1, // 8 bytes for discriminator, 4 bytes for vector length, 1 byte for bump
+        space = 8 + Whitelist::INIT_SPACE , // 8 bytes for discriminator, 
         seeds = [b"whitelist"],
         bump
     )]
-    pub whitelist: Account<'info, Whitelist>,
+    pub whitelist_pda: Account<'info, Whitelist>,
     pub system_program: Program<'info, System>,
 }
 
 impl<'info> InitializeWhitelist<'info> {
     pub fn initialize_whitelist(&mut self, bumps: InitializeWhitelistBumps) -> Result<()> {
-        // Initialize the whitelist with an empty address vector
-        self.whitelist.set_inner(Whitelist { 
-            address: vec![],
-            bump: bumps.whitelist,
+        // Initialize the whitelist with the key of the admin
+        self.whitelist_pda.set_inner(Whitelist {
+            key: self.admin.key(),
+            bump: bumps.whitelist_pda,
         });
 
         Ok(())

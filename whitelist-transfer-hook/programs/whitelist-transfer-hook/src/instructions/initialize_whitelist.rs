@@ -21,7 +21,7 @@ impl<'info> InitializeWhitelist<'info> {
     pub fn initialize_whitelist(&mut self, bumps: InitializeWhitelistBumps) -> Result<()> {
         // Initialize the whitelist with the key of the admin
         self.whitelist_pda.set_inner(Whitelist {
-            key: self.admin.key(),
+            user: self.admin.key(),
             bump: bumps.whitelist_pda,
         });
 

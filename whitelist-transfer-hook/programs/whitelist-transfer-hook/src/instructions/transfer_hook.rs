@@ -18,7 +18,7 @@ use crate::state::{Whitelist, WhitelistUsers};
 pub struct TransferHook<'info> {
     #[account(
         token::mint = mint, 
-        token::authority = owner,
+        token::authority = user,
     )]
     pub source_token: InterfaceAccount<'info, TokenAccount>,
     pub mint: InterfaceAccount<'info, Mint>,
@@ -27,7 +27,7 @@ pub struct TransferHook<'info> {
     )]
     pub destination_token: InterfaceAccount<'info, TokenAccount>,
     /// CHECK: source token account owner, can be SystemAccount or PDA owned by another program
-    pub owner: UncheckedAccount<'info>,
+    pub user: UncheckedAccount<'info>,
     /// CHECK: ExtraAccountMetaList Account,
     #[account(
         seeds = [b"extra-account-metas", mint.key().as_ref()], 
@@ -41,7 +41,7 @@ pub struct TransferHook<'info> {
     pub whitelist_pda: Account<'info, Whitelist>,
 
     #[account(
-        seeds = [b"whitelist_users", owner.key().as_ref()],
+        seeds = [b"whitelist_users", user.key().as_ref()],
         bump = whitelist_user.bump,
     )]
     pub whitelist_user : Account<'info, WhitelistUsers>,
@@ -57,13 +57,13 @@ impl<'info> TransferHook<'info> {
         msg!("Source token owner: {}", self.source_token.owner);
         msg!("Destination token owner: {}", self.destination_token.owner);
 
-        // if self.whitelist.key.contains(&self.source_token.owner) {
-        //     msg!("Transfer allowed: The address is whitelisted");
-        // } else {
-        //     panic!("TransferHook: Address is not whitelisted");
-        // }
+        if self.whitelist_user.user == self.source_token.owner {
+            msg!("Transfer allowed: The address is whitelisted");
+        } else {
+            panic!("TransferHook: Address is not whitelisted");
+        }
 
-        msg!("User is whitelisted : {}", self.whitelist_user.key);
+        // msg!("User is whitelisted : {}", self.whitelist_user.key);
 
         Ok(())
     }

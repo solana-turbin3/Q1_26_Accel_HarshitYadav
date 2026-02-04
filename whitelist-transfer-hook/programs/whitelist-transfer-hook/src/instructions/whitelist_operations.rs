@@ -31,7 +31,7 @@ pub struct AddToWhitelist<'info> {
 
 pub fn add_to_whitelist(ctx: Context<AddToWhitelist>) -> Result<()> {
     let whitelist_users = &mut ctx.accounts.whitelist_users;
-    whitelist_users.key = ctx.accounts.user.key();
+    whitelist_users.user = ctx.accounts.user.key();
     whitelist_users.bump = ctx.bumps.whitelist_users;
     msg!("User {} added to whitelist", ctx.accounts.user.key());
     Ok(())

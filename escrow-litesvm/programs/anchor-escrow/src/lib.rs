@@ -3,8 +3,8 @@
 
 use anchor_lang::prelude::*;
 
-mod state;
 mod instructions;
+mod state;
 mod tests;
 
 use instructions::*;

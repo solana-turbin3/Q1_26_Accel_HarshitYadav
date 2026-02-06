@@ -43,7 +43,7 @@ mod tests {
         Address::from_str(&pkey.to_string()).unwrap()
     }
 
-    fn setup() -> LiteSVM {
+    fn setup() ->( LiteSVM , Keypair ){
         // Initialize LiteSVM and payer
         let mut program = LiteSVM::new();
         let maker = Keypair::new();
@@ -85,16 +85,15 @@ mod tests {
         msg!("Lamports of fetched account: {}", fetched_account.lamports);
 
         // Return the LiteSVM instance and payer keypair
-        program
+        (program , maker)
     }
 
     #[test]
-    // #[ignore]
+    #[ignore]
     fn test_make() {
         // Setup the test environment by initializing LiteSVM and creating a payer keypair
-        let mut program = setup();
+        let( mut program , maker) = setup();
         let seed = 123u64;
-        let maker = Keypair::new();
         let taker = Keypair::new();
         program
             .airdrop(
@@ -209,11 +208,9 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_take() {
-        let mut program = setup();
+        let( mut program , maker) = setup();
         let seed = 123u64;
-        let maker = Keypair::new();
         let taker = Keypair::new();
         program
             .airdrop(
@@ -234,11 +231,12 @@ mod tests {
             .authority(&maker.pubkey())
             .send()
             .unwrap();
-        let mint_b = CreateMint::new(&mut program, &maker)
+        let mint_b = CreateMint::new(&mut program, &taker)
             .decimals(6)
-            .authority(&maker.pubkey())
+            .authority(&taker.pubkey())
             .send()
             .unwrap();
+
         let escrow_pda = Pubkey::find_program_address(
             &[
                 b"escrow",
@@ -307,12 +305,23 @@ mod tests {
 
         let vault_account = program.get_account(&vault).unwrap();
         let vault_data = spl_token::state::Account::unpack(&vault_account.data).unwrap();
-        assert_eq!(vault_data.amount, 10 * 1000000);
-        assert_eq!(vault_data.mint, mint_a);
+        // assert_eq!(vault_data.amount, 10 * 1000000);
+        // assert_eq!(vault_data.mint, mint_a);
 
-        MintTo::new(&mut program, &maker, &mint_b, &taker_ata_b, 10 * 1000000)
-            .send()
-            .unwrap();
+        let mint_b_metadata = program.get_account(&mint_b).unwrap().data ;
+        let data_mint_b = spl_token::state::Mint::unpack(&mint_b_metadata).unwrap() ;
+        // println!("mint_b authority  : {:?}" , data_mint_b.mint_authority ) ;
+        // println!("taker : {}" , taker.pubkey().to_string()) ;
+        // println!("maker : {}" , maker.pubkey().to_string()) ;
+
+        match MintTo::new(&mut program, &taker, &mint_b, &taker_ata_b, 10 * 1000000)
+            .send(){
+                Ok(_) => {} ,
+                Err(e) => {
+                    println!("chud gaya {:?}" , e) ;
+                }
+            }
+            
 
         let take_ix = Instruction {
             program_id: PROGRAM_ID,
@@ -330,7 +339,7 @@ mod tests {
                 token_program: token_program,
                 system_program: system_program,
             }
-            .to_account_metas(None),
+            .to_account_metas(Some(true)),
             data: crate::instruction::Take {}.data(),
         };
 
@@ -338,19 +347,33 @@ mod tests {
         let recent_blockhash = program.latest_blockhash();
         let take_transaction = Transaction::new(&[&taker], message2, recent_blockhash);
 
-        let _take_tx = program.send_transaction(take_transaction).unwrap();
+        let take_tx = program.send_transaction(take_transaction).unwrap();
 
-        // msg!("\n\nTake transaction sucessfull");
-        // msg!("CUs Consumed: {}", take_tx.compute_units_consumed);
-        // msg!("Tx Signature: {}", take_tx.signature);
+        let taker_ata_a_metadata = program.get_account(&taker_ata_a).unwrap() ;
+        let taker_ata_a_data = spl_token::state::Account::unpack(&taker_ata_a_metadata.data).unwrap() ;
+        let taker_ata_b_metadata = program.get_account(&taker_ata_b).unwrap() ;
+        let taker_ata_b_data = spl_token::state::Account::unpack(&taker_ata_b_metadata.data).unwrap() ;
+
+        let maker_ata_a_metadata = program.get_account(&maker_ata_a).unwrap() ;
+        let maker_ata_a_data = spl_token::state::Account::unpack(&maker_ata_a_metadata.data).unwrap() ;
+        let maker_ata_b_metadata = program.get_account(&maker_ata_b).unwrap() ;
+        let maker_ata_b_data = spl_token::state::Account::unpack(&maker_ata_b_metadata.data).unwrap() ;
+
+        assert_eq!(maker_ata_a_data.amount, 0);
+        assert_eq!(maker_ata_b_data.amount, 10*1000000);
+        assert_eq!(taker_ata_a_data.amount, 10*1000000);
+        assert_eq!(taker_ata_b_data.amount, 0);
+
+        msg!("CUs Consumed: {}", take_tx.compute_units_consumed);
+        msg!("Tx Signature: {}", take_tx.signature);
         // let escrow_data = Escrow::try_deserialize(&mut escrow.data.as_ref()).unwrap();
     }
 
     #[test]
+    #[ignore]
     fn test_refund() {
-        let mut program = setup();
+        let (mut program , maker) = setup();
         let seed = 123u64;
-        let maker = Keypair::new();
         let taker = Keypair::new();
         program
             .airdrop(

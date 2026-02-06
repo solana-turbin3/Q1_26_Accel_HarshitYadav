@@ -7,10 +7,9 @@ use anchor_spl::{
     },
 };
 
-use crate::state::Escrow;
-
-//Create context
+use crate::state::{Escrow};
 #[derive(Accounts)]
+#[instruction(seed : u64)]
 pub struct Take<'info> {
     #[account(mut)]
     pub taker: Signer<'info>,
@@ -64,6 +63,13 @@ pub struct Take<'info> {
 //Close vault account
 impl<'info> Take<'info> {
     pub fn deposit(&mut self) -> Result<()> {
+        let escrow = &self.escrow ;
+        msg!("mint_a : {}" , escrow.mint_a) ;
+        msg!("mint_b : {}" , escrow.mint_b) ;
+        msg!("maker : {}" , escrow.maker) ;
+        msg!("receive : {}" , escrow.receive) ;
+        msg!("seed : {}" , escrow.seed) ;
+
         let cpi_program = self.token_program.to_account_info();
 
         let cpi_accounts = TransferChecked {
@@ -79,11 +85,12 @@ impl<'info> Take<'info> {
     }
 
     pub fn withdraw_and_close_vault(&mut self) -> Result<()> {
+        
         let signer_seeds: [&[&[u8]]; 1] = [&[
             b"escrow",
             self.maker.key.as_ref(),
             &self.escrow.seed.to_le_bytes()[..],
-            &[self.escrow.bump],
+            &[self.escrow.bump]
         ]];
 
         let cpi_program = self.token_program.to_account_info();

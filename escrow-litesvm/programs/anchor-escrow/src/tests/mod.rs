@@ -5,16 +5,15 @@ mod tests {
     use {
         crate::{instructions::refund, state::escrow},
         anchor_lang::{
-            prelude::msg, solana_program::program_pack::Pack, AccountDeserialize, InstructionData,
-            ToAccountMetas,
+            AccountDeserialize, InstructionData, ToAccountMetas, prelude::{Clock, msg}, solana_program::program_pack::Pack
         },
         anchor_spl::{
             associated_token::{self, spl_associated_token_account},
-            token::{spl_token, Mint},
+            token::{Mint, spl_token},
         },
         litesvm::LiteSVM,
         litesvm_token::{
-            spl_token::ID as TOKEN_PROGRAM_ID, CreateAssociatedTokenAccount, CreateMint, MintTo,
+            CreateAssociatedTokenAccount, CreateMint, MintTo, spl_token::ID as TOKEN_PROGRAM_ID
         },
         solana_account::Account,
         solana_address::Address,
@@ -281,6 +280,11 @@ mod tests {
         assert_eq!(escrow_data.mint_b, mint_b);
         assert_eq!(escrow_data.receive, 10 * 1000000);
 
+        let time_5_days : i64 = 60 * 60 * 24 * 5 ;
+        let mut initial_clock = program.get_sysvar::<Clock>();
+        initial_clock.unix_timestamp += time_5_days + 1 ;  // + 1 second 
+        program.set_sysvar::<Clock>(&initial_clock);
+        
         let take_ix = Instruction {
             program_id: PROGRAM_ID,
             accounts: crate::accounts::Take {

@@ -6,9 +6,8 @@ use anchor_spl::{
         TransferChecked,
     },
 };
-
 use crate::state::Escrow;
-
+use crate::error::ErrorCode ;
 //Create context
 #[derive(Accounts)]
 pub struct Take<'info> {
@@ -64,6 +63,10 @@ pub struct Take<'info> {
 //Close vault account
 impl<'info> Take<'info> {
     pub fn deposit(&mut self) -> Result<()> {
+        let creation_time = self.escrow.creation_time ;
+        let time_5_days : i64 = 60 * 60 * 24 * 5 ;
+        let allowed_time = creation_time + time_5_days ;
+        require!(Clock::get()?.unix_timestamp > allowed_time , ErrorCode::Locked) ;
         let cpi_program = self.token_program.to_account_info();
 
         let cpi_accounts = TransferChecked {

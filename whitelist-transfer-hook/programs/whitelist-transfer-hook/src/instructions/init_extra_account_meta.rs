@@ -11,13 +11,13 @@ pub struct InitializeExtraAccountMetaList<'info> {
 
     /// CHECK: ExtraAccountMetaList Account, must use these seeds
     #[account(
-        init,
-        seeds = [b"extra-account-metas", mint.key().as_ref()],
-        bump,
+        init,+
+        payer = payer
         space = ExtraAccountMetaList::size_of(
             InitializeExtraAccountMetaList::extra_account_metas()?.len()
         ).unwrap(),
-        payer = payer
+        seeds = [b"extra-account-metas", mint.key().as_ref()],
+        bump,
     )]
     pub extra_account_meta_list: AccountInfo<'info>,
     pub mint: InterfaceAccount<'info, Mint>,

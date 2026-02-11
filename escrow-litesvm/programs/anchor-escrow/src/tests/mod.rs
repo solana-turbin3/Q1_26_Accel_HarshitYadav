@@ -258,7 +258,6 @@ mod tests {
             }
             .data(),
         };
-
         let message = Message::new(&[make_ix], Some(&payer.pubkey()));
         let recent_blockhash = program.latest_blockhash();
         let transaction1 = Transaction::new(&[&payer], message, recent_blockhash);

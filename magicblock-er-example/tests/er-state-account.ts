@@ -65,6 +65,24 @@ describe("er-state-account", () => {
     console.log("\nUser Account State Updated: ", tx);
   });
 
+  it("Call VRF on base layer", async () => {
+    await program.methods
+      .generateRandomData(0)
+      .accountsPartial({
+        user: anchor.Wallet.local().publicKey,
+        userAccount: userAccount,
+        oracleQueue: new PublicKey(
+          "Cuj97ggrhhidhbu39TijNVqE74xvKJ69gDervRUXAxGh",
+        ),
+      })
+      .rpc();
+
+    console.log("Waiting for VRF callback...");
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+
+    const account = await program.account.userAccount.fetch(userAccount);
+    console.log("Random value: ", account.data.toString());
+  });
   it("Delegate to Ephemeral Rollup!", async () => {
     let tx = await program.methods
       .delegate()
@@ -78,6 +96,39 @@ describe("er-state-account", () => {
 
     console.log("\nUser Account Delegated to Ephemeral Rollup: ", tx);
   });
+
+  it("Execute vrf delegatees ", async () => {
+    let tx = await ephemeralProgram.methods
+      .generateRandomData(0)
+      .accountsPartial({
+        user: anchor.Wallet.local().publicKey,
+        userAccount: userAccount,
+        oracleQueue: new PublicKey(
+          "5hBR571xnXppuCPveTrctfTU7tJLSN94nq7kv7FRK5Tc",
+        ),
+      })
+      .transaction();
+    tx.feePayer = providerEphemeralRollup.wallet.publicKey;
+
+    tx.recentBlockhash = (
+      await providerEphemeralRollup.connection.getLatestBlockhash()
+    ).blockhash;
+    tx = await providerEphemeralRollup.wallet.signTransaction(tx);
+    const txHash = await providerEphemeralRollup.sendAndConfirm(tx, [], {
+      skipPreflight: false,
+    });
+    console.log("Your transaction signature", tx);
+
+    console.log("Waiting for VRF clback to be executed...");
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+    let account =
+      await providerEphemeralRollup.connection.getAccountInfo(userAccount);
+    // console.log("User Account Info: ", account);
+
+    const randomValue = new anchor.BN(account.data.slice(40, 48), "le");
+    console.log("Random value: ", randomValue.toString());
+  });
+
 
   it("Update State and Commit to Base Layer!", async () => {
     let tx = await program.methods
